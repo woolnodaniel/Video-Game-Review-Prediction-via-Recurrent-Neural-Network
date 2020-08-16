@@ -10,20 +10,20 @@ DO NOT MODIFY THIS FILE
 import torch
 from torchtext import data
 
-import student
+import model
 
 def main():
     # Use a GPU if available, as it should be faster.
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    student.device = device
+    model.device = device
     print("Using device: {}"
           "\n".format(str(device)))
 
     # Load the training dataset, and create a dataloader to generate a batch.
     textField = data.Field(lower=True, include_lengths=True, batch_first=True,
-                           preprocessing=student.preprocessing,
-                           postprocessing=student.postprocessing,
-                           stop_words=student.stopWords)
+                           preprocessing=model.preprocessing,
+                           postprocessing=model.postprocessing,
+                           stop_words=model.stopWords)
     labelField = data.Field(sequential=False, use_vocab=False, is_target=True)
 
     dataset = data.TabularDataset('train.json', 'json',
@@ -31,32 +31,32 @@ def main():
                                   'rating': ('rating', labelField)})
     #print(dataset[0].reviewText)
 
-    textField.build_vocab(dataset, vectors=student.wordVectors)
+    textField.build_vocab(dataset, vectors=model.wordVectors)
 
     # Allow training on the entire dataset, or split it for training and validation.
-    if student.trainValSplit == 1:
+    if model.trainValSplit == 1:
         trainLoader = data.BucketIterator(dataset, shuffle=True,
-                                          batch_size=student.batchSize,
+                                          batch_size=model.batchSize,
                                           sort_key=lambda x: len(x.reviewText),
                                           sort_within_batch=True)
     else:
-        train, validate = dataset.split(split_ratio=student.trainValSplit,
+        train, validate = dataset.split(split_ratio=model.trainValSplit,
                                         stratified=True, strata_field='rating')
 
         trainLoader, valLoader = data.BucketIterator.splits(
-            (train, validate), shuffle=True, batch_size=student.batchSize,
+            (train, validate), shuffle=True, batch_size=model.batchSize,
              sort_key=lambda x: len(x.reviewText), sort_within_batch=True)
 
-    # Get model and optimiser from student.
-    net = student.net.to(device)
-    criterion = student.lossFunc
-    optimiser = student.optimiser
+    # Get model and optimiser from model.
+    net = model.net.to(device)
+    criterion = model.lossFunc
+    optimiser = model.optimiser
 
     # Train.
     best_epoch = 0
     best_loss = 0
     best_score = 1.11
-    for epoch in range(student.epochs):
+    for epoch in range(model.epochs):
         runningLoss = 0
 
         for i, batch in enumerate(trainLoader):
@@ -72,7 +72,7 @@ def main():
 
             # Forward pass through the network.
             output = net(inputs, length)
-            loss = criterion(output, student.convertLabel(labels))
+            loss = criterion(output, model.convertLabel(labels))
 
             # Calculate gradients.
             loss.backward()
@@ -95,7 +95,7 @@ def main():
                 runningLoss = 0
 
 
-        if student.trainValSplit != 1:
+        if model.trainValSplit != 1:
             net.eval()
 
             closeness = [0 for _ in range(5)]
@@ -107,7 +107,7 @@ def main():
                     labels = batch.rating.type(torch.FloatTensor).to(device)
 
                     # Convert network output to integer values.
-                    outputs = student.convertNetOutput(net(inputs, length)).flatten()
+                    outputs = model.convertNetOutput(net(inputs, length)).flatten()
 
                     for i in range(5):
                         closeness[i] += torch.sum(abs(labels - outputs) == i).item()
@@ -139,7 +139,7 @@ def main():
           "Model saved to savedModel.pth")
 
     # Test on validation data if it exists.
-    if student.trainValSplit != 1:
+    if model.trainValSplit != 1:
         net.eval()
 
         closeness = [0 for _ in range(5)]
@@ -151,7 +151,7 @@ def main():
                 labels = batch.rating.type(torch.FloatTensor).to(device)
 
                 # Convert network output to integer values.
-                outputs = student.convertNetOutput(net(inputs, length)).flatten()
+                outputs = model.convertNetOutput(net(inputs, length)).flatten()
                 print(outputs)
 
                 for i in range(5):
