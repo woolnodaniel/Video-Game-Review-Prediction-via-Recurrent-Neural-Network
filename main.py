@@ -53,9 +53,6 @@ def main():
     optimiser = model.optimiser
 
     # Train.
-    best_epoch = 0
-    best_loss = 0
-    best_score = 1.11
     for epoch in range(model.epochs):
         runningLoss = 0
 
@@ -85,13 +82,6 @@ def main():
             if i % 32 == 31:
                 print("Epoch: %2d, Batch: %4d, Loss: %.3f"
                       % (epoch + 1, i + 1, runningLoss / 32))
-                if runningLoss / 32 < best_score:
-                    string = '%.4f' % (runningLoss / 32)
-                    filename = 'savedModel' + string + '.pth'
-                    torch.save(net.state_dict(), filename)
-                    print("\n"
-                        "Model saved to savedModel.pth, loss was {:.2f}".format(runningLoss / 32))
-                    best_score = runningLoss / 32
                 runningLoss = 0
 
 
@@ -124,16 +114,7 @@ def main():
                   "\n"
                   "Weighted score: {:.2f}".format(*accuracy, score))
 
-            if score > best_loss:
-                best_epoch = epoch
-                best_loss = score
-                filename = 'savedModel' + str(epoch) + '.pth'
-                torch.save(net.state_dict(), filename)
-                print("\n"
-                    "Model saved to savedModel.pth, score was {:.2f}".format(score))
-
     # Save model.
-    """
     torch.save(net.state_dict(), 'savedModel.pth')
     print("\n"
           "Model saved to savedModel.pth")
@@ -168,7 +149,6 @@ def main():
               "Four stars away: {:.2%}\n"
               "\n"
               "Weighted score: {:.2f}".format(*accuracy, score))
-  """
 
     print(f'Best epoch: {best_epoch}, best score: {best_loss}')
 
